@@ -687,7 +687,7 @@ def generate_mapping_reviews(db: Session, obligations: list, policies: list,
                 })
                 
                 review = MappingReview(
-                    id=f"MAP_{source_type[:3]}_{source.id}_{target_type[:3]}_{target.id}_{fake.uuid4().hex[:8]}",
+                    id=f"MAP_{source_type[:3]}_{source.id}_{target_type[:3]}_{target.id}_{fake.uuid4()[:8]}",
                     mapping_type=mapping_type,
                     source_entity_type=source_type,
                     source_entity_id=source.id,
