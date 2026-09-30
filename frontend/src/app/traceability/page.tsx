@@ -58,9 +58,11 @@ export default function TraceabilityPage() {
   }, [selectedObligation]);
 
   const filteredObligations = obligations
-    .filter(o => 
+    .filter(o =>
       o.obligation_text.toLowerCase().includes(search.toLowerCase()) ||
-      o.category?.toLowerCase().includes(search.toLowerCase())
+      o.category?.toLowerCase().includes(search.toLowerCase()) ||
+      o.id.toLowerCase().includes(search.toLowerCase()) ||
+      o.regulation_id.toLowerCase().includes(search.toLowerCase())
     )
     .filter(o => !regulationFilter || o.regulation_id === regulationFilter)
     .filter(o => !riskFilter || o.risk_level === riskFilter);
@@ -133,7 +135,7 @@ export default function TraceabilityPage() {
                     {truncate(obl.obligation_text, 80)}
                   </p>
                 </div>
-                <p className="text-xs text-secondary-500 mt-1">{obl.regulation_id}</p>
+                <p className="text-xs text-secondary-500 mt-1 font-mono">{obl.id} • {obl.regulation_id}</p>
               </button>
             ))}
             {filteredObligations.length === 0 && (
@@ -223,9 +225,9 @@ export default function TraceabilityPage() {
                     {chain.policies?.length ? (
                       chain.policies.map((p: any) => (
                         <div key={p.id} className="p-3 bg-secondary-50 rounded-lg">
-                          <Link href={`/policies/${p.id}`} className="font-medium text-secondary-900 hover:text-primary-600">
+                          <span className="font-medium text-secondary-900" title={p.id}>
                             {p.title}
-                          </Link>
+                          </span>
                           <p className="text-sm text-secondary-500">{p.owner_department} • {p.status}</p>
                         </div>
                       ))
@@ -247,9 +249,9 @@ export default function TraceabilityPage() {
                     {chain.processes?.length ? (
                       chain.processes.map((p: any) => (
                         <div key={p.id} className="p-3 bg-secondary-50 rounded-lg">
-                          <Link href={`/processes/${p.id}`} className="font-medium text-secondary-900 hover:text-primary-600">
+                          <span className="font-medium text-secondary-900" title={p.id}>
                             {p.name}
-                          </Link>
+                          </span>
                           <p className="text-sm text-secondary-500">{p.department} • Risk: {p.risk_rating}</p>
                         </div>
                       ))
@@ -273,9 +275,9 @@ export default function TraceabilityPage() {
                         <div key={c.id} className="p-3 bg-secondary-50 rounded-lg border border-secondary-200">
                           <div className="flex items-start justify-between">
                             <div>
-                              <Link href={`/controls/${c.id}`} className="font-medium text-secondary-900 hover:text-primary-600">
+                              <span className="font-medium text-secondary-900" title={c.id}>
                                 {c.name}
-                              </Link>
+                              </span>
                               <p className="text-sm text-secondary-500">{c.control_type} • {c.frequency}</p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -309,9 +311,9 @@ export default function TraceabilityPage() {
                         <div key={e.id} className="p-3 bg-secondary-50 rounded-lg border border-secondary-200">
                           <div className="flex items-start justify-between">
                             <div>
-                              <Link href={`/evidence/${e.id}`} className="font-medium text-secondary-900 hover:text-primary-600">
+                              <span className="font-medium text-secondary-900" title={e.id}>
                                 {e.title}
-                              </Link>
+                              </span>
                               <p className="text-sm text-secondary-500">{e.evidence_type} • Control: {e.control_id}</p>
                             </div>
                             <span className={cn('badge', getStatusColor(e.status))}>
@@ -340,9 +342,9 @@ export default function TraceabilityPage() {
                         <div key={e.id} className="p-3 bg-secondary-50 rounded-lg border border-secondary-200">
                           <div className="flex items-start justify-between">
                             <div>
-                              <Link href={`/exceptions/${e.id}`} className="font-medium text-secondary-900 hover:text-primary-600">
+                              <span className="font-medium text-secondary-900" title={e.id}>
                                 {e.number}
-                              </Link>
+                              </span>
                               <p className="text-sm text-secondary-500">{e.type.replace(/_/g, ' ')} • Control: {e.control_id}</p>
                             </div>
                             <div className="flex items-center gap-2">

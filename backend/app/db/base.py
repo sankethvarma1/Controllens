@@ -300,6 +300,12 @@ class AuditEvent(Base, TimestampMixin):
     ip_address = Column(String(45))
     user_agent = Column(Text)
 
+    # Compatibility: API/frontend refer to the event time as `timestamp`.
+    # The actual column (via TimestampMixin) is `created_at`; no DB change.
+    @property
+    def timestamp(self):
+        return self.created_at
+
 
 class Document(Base, TimestampMixin):
     __tablename__ = "documents"

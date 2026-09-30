@@ -26,7 +26,8 @@ except ImportError:
 
 # Text processing
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
+# NOTE: SentenceTransformer is imported lazily inside EmbeddingGenerator.model
+# so that backend startup and non-ML endpoints never require torch/transformers.
 
 # Database
 from sqlalchemy.orm import Session
@@ -294,6 +295,7 @@ class EmbeddingGenerator:
     @property
     def model(self):
         if self._model is None:
+            from sentence_transformers import SentenceTransformer
             self._model = SentenceTransformer(self.model_name)
         return self._model
     

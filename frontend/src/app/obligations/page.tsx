@@ -53,9 +53,11 @@ export default function ObligationsPage() {
   };
 
   const filtered = obligations
-    .filter(o => 
+    .filter(o =>
       o.obligation_text.toLowerCase().includes(search.toLowerCase()) ||
-      o.category?.toLowerCase().includes(search.toLowerCase())
+      o.category?.toLowerCase().includes(search.toLowerCase()) ||
+      o.id.toLowerCase().includes(search.toLowerCase()) ||
+      o.regulation_id.toLowerCase().includes(search.toLowerCase())
     )
     .filter(o => !regulationFilter || o.regulation_id === regulationFilter)
     .filter(o => !categoryFilter || o.category === categoryFilter)
@@ -153,7 +155,6 @@ export default function ObligationsPage() {
                       <th>Coverage</th>
                     </>
                   )}
-                  <th className="w-24">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -168,9 +169,9 @@ export default function ObligationsPage() {
                         </span>
                       </td>
                       <td>
-                        <Link href={`/obligations/${obl.id}`} className="font-medium text-secondary-900 hover:text-primary-600 max-w-xs truncate block">
+                        <span className="font-medium text-secondary-900 max-w-xs truncate block" title={obl.id}>
                           {truncate(obl.obligation_text, 100)}
-                        </Link>
+                        </span>
                       </td>
                       <td className="text-secondary-600">
                         {regulations.find(r => r.id === obl.regulation_id)?.short_name || obl.regulation_id}
@@ -193,11 +194,7 @@ export default function ObligationsPage() {
                           </td>
                         </>
                       )}
-                      <td>
-                        <Link href={`/obligations/${obl.id}`} className="p-1.5 hover:bg-secondary-100 rounded" title="View Details">
-                          <ExternalLink className="w-4 h-4" />
-                        </Link>
-                      </td>
+
                     </tr>
                   );
                 })}

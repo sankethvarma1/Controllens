@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional, Any
 from sqlalchemy import text, func, and_, or_
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session
 
 from app.db.base import (
     Regulation, Obligation, Policy, Process, Control,
@@ -364,45 +364,29 @@ class AnalyticsEngine:
     
     def _get_linked_policies(self, obligation_id: str) -> List[Policy]:
         """Get policies linked to obligation via accepted mappings."""
-        mr_target = aliased(MappingReview)
-        mr_source = aliased(MappingReview)
         return self.db.query(Policy).join(
-            mr_target,
+            MappingReview,
             and_(
-                mr_target.target_entity_type == 'policy',
-                mr_target.target_entity_id == Policy.id,
-                mr_target.status == 'accepted'
-            )
-        ).join(
-            mr_source,
-            and_(
-                mr_source.id == mr_target.id,
-                mr_source.source_entity_type == 'obligation',
-                mr_source.source_entity_id == obligation_id,
-                mr_source.status == 'accepted',
-                mr_source.mapping_type == 'obligation_to_policy'
+                MappingReview.target_entity_type == 'policy',
+                MappingReview.target_entity_id == Policy.id,
+                MappingReview.source_entity_type == 'obligation',
+                MappingReview.source_entity_id == obligation_id,
+                MappingReview.status == 'accepted',
+                MappingReview.mapping_type == 'obligation_to_policy'
             )
         ).all()
-    
+
     def _get_linked_processes(self, policy_id: str) -> List[Process]:
         """Get processes linked to policy via accepted mappings."""
-        mr_target = aliased(MappingReview)
-        mr_source = aliased(MappingReview)
         return self.db.query(Process).join(
-            mr_target,
+            MappingReview,
             and_(
-                mr_target.target_entity_type == 'process',
-                mr_target.target_entity_id == Process.id,
-                mr_target.status == 'accepted'
-            )
-        ).join(
-            mr_source,
-            and_(
-                mr_source.id == mr_target.id,
-                mr_source.source_entity_type == 'policy',
-                mr_source.source_entity_id == policy_id,
-                mr_source.status == 'accepted',
-                mr_source.mapping_type == 'policy_to_process'
+                MappingReview.target_entity_type == 'process',
+                MappingReview.target_entity_id == Process.id,
+                MappingReview.source_entity_type == 'policy',
+                MappingReview.source_entity_id == policy_id,
+                MappingReview.status == 'accepted',
+                MappingReview.mapping_type == 'policy_to_process'
             )
         ).all()
     
@@ -681,7 +665,10 @@ class AnalyticsEngine:
         
         return {
             "total_obligations": total_obligations,
-            "mapped_obligations": coverage["covered_obligations"],
+            "mapped_obligations": sum(
+                1 for obl in self.db.query(Obligation).filter(Obligation.status == 'active').all()
+                if self._get_linked_policies(obl.id)
+            ),
             "coverage_percentage": coverage["coverage_percentage"],
             "control_gaps": control_cov["controls_without_evidence"],
             "evidence_gaps": sum(1 for c in evidence_comp["controls"] if c["status"] in ["no_evidence", "unverified", "incomplete"]),

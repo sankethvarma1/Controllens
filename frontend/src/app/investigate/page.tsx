@@ -58,8 +58,9 @@ export default function InvestigatePage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900">AI Investigation</h1>
+          <h1 className="text-2xl font-bold text-secondary-900">Investigation</h1>
           <p className="text-secondary-500 mt-1">Ask questions about your control framework with evidence-based answers</p>
+          <p className="text-xs text-secondary-400 mt-1">Template-based summaries over retrieved evidence — no live LLM call in this build.</p>
         </div>
         <button
           onClick={() => setShowHistory(!showHistory)}

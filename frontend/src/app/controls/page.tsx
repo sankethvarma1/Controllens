@@ -51,9 +51,9 @@ export default function ControlsPage() {
           <h1 className="text-2xl font-bold text-secondary-900">Controls</h1>
           <p className="text-secondary-500 mt-1">Manage and monitor control effectiveness</p>
         </div>
-        <Link href="/controls/new" className="btn-primary">
+        <button className="btn-primary opacity-50 cursor-not-allowed" disabled title="Control creation is not part of this demo">
           Add Control
-        </Link>
+        </button>
       </div>
 
       {/* Filters */}
@@ -136,7 +136,6 @@ export default function ControlsPage() {
                   <th>Operating Eff.</th>
                   <th>Next Test</th>
                   <th>Status</th>
-                  <th className="w-24">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -145,9 +144,9 @@ export default function ControlsPage() {
                   return (
                     <tr key={ctl.id}>
                       <td>
-                        <Link href={`/controls/${ctl.id}`} className="font-medium text-secondary-900 hover:text-primary-600">
+                        <span className="font-medium text-secondary-900" title={ctl.id}>
                           {ctl.name}
-                        </Link>
+                        </span>
                       </td>
                       <td className="capitalize">{ctl.control_type}</td>
                       <td className="text-secondary-600">
@@ -182,11 +181,7 @@ export default function ControlsPage() {
                           {ctl.status}
                         </span>
                       </td>
-                      <td>
-                        <Link href={`/controls/${ctl.id}`} className="p-1.5 hover:bg-secondary-100 rounded" title="View Details">
-                          <ExternalLink className="w-4 h-4" />
-                        </Link>
-                      </td>
+
                     </tr>
                   );
                 })}

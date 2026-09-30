@@ -27,11 +27,14 @@ class Settings(BaseSettings):
     DOCS_URL: str = "/api/v1/docs"
     REDOC_URL: str = "/api/v1/redoc"
     
-    # CORS
+    # CORS — must include every origin that serves the frontend.
+    # Review instance runs on :3002 (ports :3000/:3001 belong to other projects).
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
-        "http://127.0.0.1:3000"
+        "http://localhost:3002",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3002"
     ]
     
     # LLM

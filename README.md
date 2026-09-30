@@ -1,365 +1,129 @@
-# CONTROLLENS
-**Regulatory & Control Intelligence Platform**
+# ControlLens
 
-A full-stack platform for connecting regulations to controls with complete traceability, evidence-based reasoning, and human-in-the-loop governance.
+A regulatory and control intelligence app. It links regulations to the obligations, policies, processes, controls, evidence, transactions, exceptions, and risks that come from them, so you can trace any requirement end to end and see where coverage is weak.
 
-[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green.svg)](https://fastapi.tiangolo.com)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://postgresql.org)
-[![pgvector](https://img.shields.io/badge/pgvector-enabled-orange.svg)](https://github.com/pgvector/pgvector)
-[![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)](https://docker.com)
+I built this as a portfolio project to practice full-stack development with data engineering, SQL analytics, embeddings, and retrieval. All demo data is synthetic.
 
----
+## Screenshots
 
-## Problem
+![Dashboard with populated compliance metrics](docs/screenshots/dashboard.png)
+![Obligation list with risk badges and filters](docs/screenshots/obligations.png)
+![Traceability chain for a mapped obligation](docs/screenshots/traceability.png)
+![Mapping review queue with decision counts](docs/screenshots/mapping-review.png)
+![Investigation answer with evidence and template notice](docs/screenshots/investigate.png)
 
-Organizations struggle to maintain traceability across their regulatory compliance framework:
+## How it works
 
-- **Regulations** → **Obligations** → **Policies** → **Processes** → **Controls** → **Evidence** → **Transactions** → **Exceptions** → **Risk**
+- **Traceability chain.** Regulation → obligation → policy → process → control → evidence, plus linked transactions, exceptions, and risk assessments. The Traceability page renders the full chain for any mapped obligation (try `OBL_REG_BASL3_004_02`). Unmapped obligations show an honest empty state instead of an error.
+- **Deterministic analytics.** Coverage, control gaps, evidence completeness and freshness, exception stats, risk exposure, and gap findings are computed in Python/SQL. No language model is involved in the math. The dashboard shows 117 obligations, 11 with policy links, 0% fully covered, and 180 gap findings.
+- **Document retrieval.** Policy and regulation texts are split into chunks (~500 characters, 100 overlap), embedded with `all-MiniLM-L6-v2` (384 dimensions), stored in PostgreSQL with pgvector (HNSW cosine index), and searched by vector similarity plus metadata filters. Every hit keeps its document, section, and page metadata.
+- **Human review.** Proposed mappings start as `proposed` and only change when a person accepts, rejects, or asks for more info. Each decision is written to the audit trail.
+- **Investigation.** Asking a question runs keyword routing over the same deterministic tools and retrieval above, then composes a short **template-based summary** of the evidence found. There is no live LLM call in this build — the page says so directly.
 
-Key challenges:
-- Obligations without adequate control coverage
-- Controls lacking supporting evidence
-- Stale or expired evidence
-- No clear audit trail for mapping decisions
-- Difficulty answering "Why was this control flagged?" or "What evidence supports this mapping?"
+## Tech stack
 
----
+Python, FastAPI, SQLAlchemy, PostgreSQL 16, pgvector, Sentence Transformers, Next.js 14, React 18, TypeScript, Tailwind CSS. A `docker-compose.yml` is included in the repo but was not exercised here (no Docker daemon in my environment).
 
-## Solution
+## Demo data
 
-CONTROLLENS provides a unified platform that:
+Everything is fictional, generated with Faker (seed 42) by `backend/scripts/generate_data.py`, which reproduces these exact counts on a fresh database:
 
-1. **Maps the complete chain** from regulation to exception with visual traceability
-2. **Calculates deterministic analytics** (coverage, effectiveness, risk exposure) - no LLM hallucination
-3. **Implements hybrid RAG** for evidence retrieval with source attribution
-4. **Enforces human-in-the-loop** for all AI-generated mappings
-4. **Provides investigation interface** with evidence-backed answers
-5. **Maintains full audit trail** of all changes and decisions
+- 5 regulations, 40 sections, 117 obligations
+- 12 policies, 15 processes, 20 controls, 27 control owners
+- 16 evidence records, 500 transactions, 30 exceptions
+- 48 risk assessments, 83 mappings (44 accepted, 24 proposed, 10 needs review, 5 rejected), 100 audit events
+- 12 documents, 1,003 chunks, all with 384-dimensional embeddings (882 via `backend/scripts/backfill_embeddings.py`)
 
----
+Note that generated obligation text and document paragraphs are filler, and seed dates are from 2023–2024. That is why the Exceptions page defaults to an "All time" view and some evidence shows as expired — the app is reporting the data honestly, not broken.
 
-## Architecture
+On labels: "180 gaps" counts overlapping findings by type (114 obligation-coverage, 12 missing-evidence, 20 stale-evidence, 20 overdue-testing, 14 open-exception), not 180 separate items. "Open Exceptions (30d)" counts open items from the last 30 days; older open exceptions exist in the data.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Frontend (Next.js)                       │
-│  Dashboard | Regulations | Obligations | Controls | Evidence   │
-│  Exceptions | Traceability | Review | Investigate | Audit      │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │ REST API
-┌─────────────────────────────▼───────────────────────────────────┐
-│                      Backend (FastAPI)                          │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐  │
-│  │Analytics │ │ Retrieval│ │ Document │ │     Agents       │  │
-│  │ Engine   │ │ (Hybrid) │ │ Pipeline │ │ 6 Specialized    │  │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘  │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │ SQL + Vector
-┌─────────────────────────────▼───────────────────────────────────┐
-│                  PostgreSQL + pgvector                          │
-│  Regulations, Obligations, Policies, Processes, Controls,      │
-│  Evidence, Transactions, Exceptions, Risk, Mappings, Audit     │
-└─────────────────────────────────────────────────────────────────┘
-```
+## Run it locally
 
----
+You need Python 3.11, Node 20, and PostgreSQL 16 with the pgvector extension. The backend and frontend run in two terminals.
 
-## Data Model
-
-### Core Entities
-
-| Entity | Description | Key Fields |
-|--------|-------------|------------|
-| `regulations` | Regulatory frameworks (GDPR, SOX, Basel III, etc.) | id, title, jurisdiction, regulator, dates |
-| `regulatory_sections` | Articles, clauses, annexes | regulation_id, section_number, content, embedding |
-| `obligations` | Extracted requirements | regulation_id, section_id, text, risk_level, category |
-| `policies` | Internal policies | title, owner_department, version, status |
-| `processes` | Business processes | name, department, process_owner, risk_rating |
-| `controls` | Control activities | type, category, frequency, automation, effectiveness |
-| `evidence` | Supporting documents | control_id, type, status, dates, embedding |
-| `transactions` | Business transactions | amount, risk_score, flags, process/control links |
-| `exceptions` | Control failures, violations | severity, status, root_cause, remediation |
-| `risk_assessments` | Risk evaluations | inherent/residual risk, likelihood, impact |
-| `mapping_reviews` | Human-in-the-loop mappings | source/target, confidence, status, decision |
-| `audit_events` | Immutable audit trail | entity, user, action, old/new values |
-
-### Relationships
-
-```
-Regulation 1──∞ RegulatorySection 1──∞ Obligation
-Obligation ∞──∞ Policy (via mapping_reviews)
-Policy ∞──∞ Process (via mapping_reviews)
-Process 1──∞ Control
-Control 1──∞ Evidence
-Control 1──∞ Transaction
-Control 1──∞ Exception
-Obligation 1──∞ Exception
-```
-
----
-
-## RAG Architecture
-
-### Document Pipeline
-```
-Document → Parser → Cleaner → Section Detector → Chunker → Embedder → pgvector
-```
-
-- **Parser**: PDF (pdfplumber), DOCX (python-docx), Text
-- **Cleaner**: Normalizes whitespace, removes control characters
-- **Section Detector**: Regex-based heading detection (Article 1, 1.1, etc.)
-- **Chunker**: RecursiveCharacterTextSplitter (500 tokens, 100 overlap)
-- **Embedder**: sentence-transformers (all-MiniLM-L6-v2, 384-dim)
-- **Storage**: pgvector with HNSW index
-
-### Hybrid Retrieval
-```
-Query → Query Embedding
-        ↓
-    ┌───┴───┐
-    │       │
-Semantic  Lexical (tsvector)
-Search    Search
-    │       │
-    └───┬───┘
-        ↓
-   Re-rank (source priority + score)
-        ↓
-   Top-K Results with Full Metadata
-```
-
-Every result retains: document_id, title, section, page, control_id, regulation_id
-
----
-
-## Agent Architecture
-
-Six specialized agents using deterministic tools:
-
-| Agent | Purpose | Key Tools |
-|-------|---------|-----------|
-| **Document Intelligence** | Analyze documents, extract obligations | `search_regulation`, `get_obligation` |
-| **Obligation Mapping** | Propose obligation→policy→process→control mappings | `map_obligation_to_policy`, `map_policy_to_process`, `map_process_to_control` |
-| **Evidence** | Collect, validate, identify gaps | `search_evidence`, `get_evidence_completeness`, `verify_evidence_claim` |
-| **Monitoring** | Continuous control/exception monitoring | `check_control_health`, `monitor_exceptions`, `detect_transaction_anomalies` |
-| **Gap Analysis** | Identify framework gaps | `find_unresolved_gaps`, `analyze_obligation_gaps`, `analyze_control_gaps` |
-| **Report** | Generate compliance reports | `generate_dashboard_report`, `generate_traceability_report` |
-
-**Tool Principle**: LLM reasons over tool results, never invents facts.
-
----
-
-## Responsible AI
-
-1. **No Auto-Acceptance**: All AI mappings start as `PROPOSED` - require human review
-2. **Evidence Attribution**: Every answer cites source documents with metadata
-3. **Insufficient Evidence Handling**: Explicitly states when evidence is lacking
-4. **Deterministic Analytics**: Metrics calculated in SQL/Python, not by LLM
-5. **Audit Trail**: All decisions (accept/reject) logged with user, timestamp, rationale
-6. **Mapping States**: `PROPOSED` → `ACCEPTED` / `REJECTED` / `NEEDS_REVIEW`
-
----
-
-## Quick Start
-
-### Prerequisites
-- Docker & Docker Compose
-- NVIDIA API key for Nemotron (optional, for LLM features)
-
-### 1. Clone and Configure
 ```bash
-git clone <repo>
-cd controllens
+git clone https://github.com/sankethvarma1/ControlLens.git
+cd ControlLens
 cp .env.example .env
-# Edit .env with your values
 ```
 
-### 2. Start Services
+### 1. Database
+
 ```bash
-docker-compose up -d
+createdb -O controllens controllens controllens_test
+psql -d controllens -c "CREATE EXTENSION IF NOT EXISTS vector;"
+psql -d controllens_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
 ```
 
-This starts:
-- PostgreSQL + pgvector on port 5432
-- FastAPI backend on port 8000
-- Next.js frontend on port 3000
+Tables are created by the app on startup. Reference DDL lives in `backend/app/db/schema.sql`.
 
-### 3. Initialize Data
+### 2. Seed data and embeddings
+
 ```bash
-# Generate synthetic data
-docker-compose exec backend python scripts/generate_data.py
-
-# Ingest sample documents
-docker-compose exec backend python -c "
-from app.services.document_pipeline import ingest_sample_documents
+cd backend
+pip install -r requirements.txt
+python3 scripts/generate_data.py
+python3 -c "
 from app.db.base import SessionLocal
-db = SessionLocal()
-ingest_sample_documents(db)
-"
+from app.services.document_pipeline import ingest_sample_documents
+db = SessionLocal(); print(len(ingest_sample_documents(db)), 'sample docs ingested')"
+python3 scripts/backfill_embeddings.py
 ```
 
-### 4. Access Application
-- **Frontend**: http://localhost:3000
-- **API Docs**: http://localhost:8000/api/v1/docs
-- **Health Check**: http://localhost:8000/health
+Use `sentence-transformers==3.0.1` with `transformers==4.41.2` and `torch==2.1.2` as pinned in `requirements.txt`; newer transformers releases break on torch 2.1.
 
----
-
-## API Endpoints
-
-### Core Resources
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| GET/POST | `/api/v1/regulations` | List/create regulations |
-| GET | `/api/v1/regulations/{id}/sections` | Get regulation sections |
-| GET/POST | `/api/v1/obligations` | List/create obligations |
-| GET | `/api/v1/obligations/{id}/coverage` | Obligation coverage analysis |
-| GET/POST | `/api/v1/policies` | List/create policies |
-| GET/POST | `/api/v1/processes` | List/create processes |
-| GET/POST | `/api/v1/controls` | List/create controls |
-| GET | `/api/v1/controls/{id}/effectiveness` | Control effectiveness analysis |
-| GET/POST | `/api/v1/evidence` | List/create evidence |
-| GET/POST | `/api/v1/transactions` | Query transactions |
-| GET/POST | `/api/v1/exceptions` | List/create exceptions |
-| PATCH | `/api/v1/exceptions/{id}` | Update exception status |
-
-### Analytics
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/analytics/dashboard` | Dashboard summary |
-| GET | `/api/v1/analytics/obligation-coverage` | Coverage analysis |
-| GET | `/api/v1/analytics/control-coverage` | Control coverage |
-| GET | `/api/v1/analytics/evidence-completeness` | Evidence completeness |
-| GET | `/api/v1/analytics/evidence-freshness` | Evidence freshness |
-| GET | `/api/v1/analytics/risk-exposure` | Risk exposure |
-| GET | `/api/v1/analytics/gaps` | Unresolved gaps |
-| GET | `/api/v1/analytics/trends` | Trend metrics |
-
-### Traceability & Investigation
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/traceability/{obligation_id}` | Full traceability chain |
-| POST | `/api/v1/investigate` | AI investigation with evidence |
-| POST | `/api/v1/retrieval/search` | Hybrid search |
-
-### Human-in-the-Loop
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/mapping-reviews` | List proposed mappings |
-| PATCH | `/api/v1/mapping-reviews/{id}` | Accept/reject mapping |
-
-### Audit
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/audit` | Audit trail |
-
-### Documents
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET/POST | `/api/v1/documents` | List/create documents |
-| GET | `/api/v1/documents/{id}/chunks` | Document chunks |
-| POST | `/api/v1/documents/ingest` | Ingest document |
-
----
-
-## Testing
+### 3. Backend (terminal 1)
 
 ```bash
-# Backend tests
-docker-compose exec backend pytest tests/ -v
-
-# Specific test categories
-docker-compose exec backend pytest tests/test_analytics.py -v
-docker-compose exec backend pytest tests/test_retrieval.py -v
-docker-compose exec backend pytest tests/test_traceability.py -v
-docker-compose exec backend pytest tests/test_evidence_attribution.py -v
+cd backend
+python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-### Key Test: Evidence Attribution
-```python
-# tests/test_evidence_attribution.py
-def test_ai_cannot_claim_missing_evidence():
-    """Ensure AI responses cannot reference non-retrieved evidence."""
-    response = investigate("What evidence supports CTL_999?")  # Non-existent
-    assert response.insufficient_evidence == True
-    assert len(response.evidence) == 0
+- Health: http://localhost:8001/health
+- API docs: http://localhost:8001/api/v1/docs
+
+Port 8001 is used because 8000 was already taken on my machine. The backend allows the frontend origin explicitly for local review (see `CORS_ORIGINS` in `backend/app/core/config.py`).
+
+### 4. Frontend (terminal 2)
+
+```bash
+cd frontend
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:8001/api/v1 npx next dev --port 3002
 ```
 
----
+- Dashboard: http://localhost:3002/dashboard
 
-## Deployment
+Port 3002 is used because 3000 was already taken locally.
 
-### Production Checklist
-- [ ] Set strong `SECRET_KEY` and `POSTGRES_PASSWORD`
-- [ ] Configure `LLM_API_KEY` for Nemotron
-- [ ] Use managed PostgreSQL (RDS, Cloud SQL) with pgvector
-- [ ] Enable TLS/SSL termination
-- [ ] Configure backup strategy for PostgreSQL
-- [ ] Set up monitoring (Prometheus/Grafana)
-- [ ] Configure log aggregation
-- [ ] Run database migrations with Alembic
+## Tests and checks
 
-### Kubernetes (Optional)
-```yaml
-# Not included in MVP - use docker-compose or managed services
-# For K8s: deploy postgres, backend (HPA), frontend (HPA), ingress
+```bash
+cd backend
+python3 -m pytest tests/test_core.py -q
 ```
 
----
+15 tests pass: database CRUD, analytics math, retrieval with stubbed query vectors, traceability chains, agent tools, and evidence attribution. Retrieval tests stub the query embedding so the suite runs offline; live retrieval with real embeddings was verified separately against the seeded database.
+
+```bash
+cd frontend
+npx tsc --noEmit
+npm run build
+```
+
+Type-check is clean and the production build succeeds (12 routes).
 
 ## Limitations
 
-1. **Synthetic Data Only**: Uses fictional organizational data for demonstration
-2. **No Real Document Processing**: Sample documents are text files, not actual regulations
-3. **LLM Integration Stubbed**: Nemotron integration requires API key; investigation uses template responses
-4. **No Authentication**: MVP lacks auth/authorization (add OAuth2/OIDC for production)
-5. **Single Tenant**: No multi-organization support
-6. **Limited Document Types**: PDF/DOCX parsing basic; no OCR for scanned docs
-7. **No Real-time Updates**: WebSocket notifications not implemented
-
----
-
-## Future Work
-
-- [ ] Authentication & RBAC (OAuth2/OIDC)
-- [ ] Multi-tenant architecture
-- [ ] Real regulatory document ingestion (EUR-Lex, SEC EDGAR, etc.)
-- [ ] Advanced NLI for evidence verification
-- [ ] Automated control testing schedules
-- [ ] Risk quantification (FAIR model)
-- [ ] Regulatory change monitoring
-- [ ] Export reports (PDF, Excel)
-- [ ] Webhook integrations (ServiceNow, Jira)
-- [ ] Mobile-responsive improvements
-- [ ] Unit/integration test coverage >80%
-- [ ] Performance optimization (query tuning, caching)
-
----
+- All data is synthetic; nothing here reflects real regulations or a real company.
+- Investigation answers are templates over retrieved evidence, not generated by an LLM.
+- Retrieval is vector similarity plus metadata filtering; there is no keyword/lexical fusion, reranker, or entailment check.
+- No user accounts or authentication; single-tenant demo.
+- The embedding model loads once per process call site; repeated cold loads are slow.
+- `backend/alembic/versions/` is empty, so there are no database migrations yet.
+- Docker Compose files ship with the repo but I have not run them here.
 
 ## License
 
-MIT License - See LICENSE file for details.
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Make changes with tests
-4. Run linting: `ruff check .` / `black .`
-5. Submit PR
-
----
-
-## Acknowledgments
-
-- **pgvector** for vector similarity search in PostgreSQL
-- **sentence-transformers** for embeddings
-- **FastAPI** for the API framework
-- **Next.js** for the frontend framework
-- **NVIDIA Nemotron** for LLM capabilities
-- **Faker** for synthetic data generation
+MIT — see [LICENSE](LICENSE).

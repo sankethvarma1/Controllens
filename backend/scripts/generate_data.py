@@ -9,6 +9,7 @@ import random
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from faker import Faker
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 # Add backend to path
@@ -19,7 +20,7 @@ from app.db.base import (
     Regulation, RegulatorySection, Obligation, Policy, Process,
     Control, ControlOwner, Evidence, Transaction, Exception as Exc,
     RiskAssessment, MappingReview, AuditEvent, Document, DocumentChunk,
-    init_db
+    init_db, drop_db
 )
 
 fake = Faker()
@@ -687,7 +688,7 @@ def generate_mapping_reviews(db: Session, obligations: list, policies: list,
                 })
                 
                 review = MappingReview(
-                    id=f"MAP_{source_type[:3]}_{source.id}_{target_type[:3]}_{target.id}_{fake.uuid4()[:8]}",
+                    id=f"MAP_{fake.uuid4()[:16]}",
                     mapping_type=mapping_type,
                     source_entity_type=source_type,
                     source_entity_id=source.id,
@@ -719,11 +720,11 @@ def generate_audit_events(db: Session, *entity_lists) -> list:
     for _ in range(100):
         entity = random.choice(all_entities) if all_entities else None
         event = AuditEvent(
-            id=f"AUD_{fake.uuid4().hex[:12]}",
+            id=f"AUD_{fake.uuid4()[:12]}",
             event_type=random.choice(["create", "update", "delete", "review", "approve", "reject"]),
             entity_type=type(entity).__name__.lower() if entity else "system",
             entity_id=entity.id if entity else None,
-            user_id=fake.uuid4().hex[:12],
+            user_id=fake.uuid4()[:12],
             user_role=random.choice(ROLES),
             action=random.choice(["created", "updated", "mapped", "reviewed", "approved", "rejected"]),
             old_values={"field": "old_value"} if random.random() < 0.5 else None,
@@ -756,7 +757,7 @@ def generate_documents_and_chunks(db: Session) -> list:
     
     for title, source_id, doc_type, pages in doc_templates:
         doc = Document(
-            id=f"DOC_{fake.uuid4().hex[:12]}",
+            id=f"DOC_{fake.uuid4()[:12]}",
             title=title,
             source=source_id,
             document_type=doc_type,
@@ -785,7 +786,7 @@ def generate_documents_and_chunks(db: Session) -> list:
                 char_start=chunk_idx * 500,
                 char_end=(chunk_idx + 1) * 500,
                 token_count=random.randint(100, 400),
-                metadata={
+                chunk_metadata={
                     "source": source_id,
                     "document_type": doc_type,
                     "chunk_index": chunk_idx
@@ -868,38 +869,38 @@ def main():
         # Verify deliberate problems
         print("\n--- DELIBERATE PROBLEMS VERIFICATION ---")
         obligations_no_controls = db.execute(
-            """SELECT COUNT(*) FROM obligations o
+            text("""SELECT COUNT(*) FROM obligations o
                LEFT JOIN mapping_reviews mr ON mr.source_entity_type='obligation' AND mr.source_entity_id=o.id AND mr.status='accepted'
                LEFT JOIN policies p ON p.id=mr.target_entity_id
                LEFT JOIN mapping_reviews mr2 ON mr2.source_entity_type='policy' AND mr2.source_entity_id=p.id AND mr2.status='accepted'
                LEFT JOIN processes pr ON pr.id=mr2.target_entity_id
                LEFT JOIN controls c ON c.process_id=pr.id
-               WHERE c.id IS NULL"""
+               WHERE c.id IS NULL""")
         ).scalar()
         print(f"Obligations without controls: {obligations_no_controls}")
         
         controls_no_evidence = db.execute(
-            "SELECT COUNT(*) FROM controls c LEFT JOIN evidence e ON e.control_id=c.id WHERE e.id IS NULL AND c.status='active'"
+            text("SELECT COUNT(*) FROM controls c LEFT JOIN evidence e ON e.control_id=c.id WHERE e.id IS NULL AND c.status='active'")
         ).scalar()
         print(f"Controls without evidence: {controls_no_evidence}")
         
         stale_evidence = db.execute(
-            "SELECT COUNT(*) FROM evidence WHERE collected_at < '2023-01-01' AND status='verified'"
+            text("SELECT COUNT(*) FROM evidence WHERE collected_at < '2023-01-01' AND status='verified'")
         ).scalar()
         print(f"Stale evidence (>1 year old): {stale_evidence}")
         
         overdue_controls = db.execute(
-            "SELECT COUNT(*) FROM controls WHERE next_test_date < CURRENT_DATE AND status='active'"
+            text("SELECT COUNT(*) FROM controls WHERE next_test_date < CURRENT_DATE AND status='active'")
         ).scalar()
         print(f"Overdue controls: {overdue_controls}")
         
         open_exceptions = db.execute(
-            "SELECT COUNT(*) FROM exceptions WHERE status='open'"
+            text("SELECT COUNT(*) FROM exceptions WHERE status='open'")
         ).scalar()
         print(f"Open exceptions: {open_exceptions}")
         
         proposed_mappings = db.execute(
-            "SELECT COUNT(*) FROM mapping_reviews WHERE status='proposed'"
+            text("SELECT COUNT(*) FROM mapping_reviews WHERE status='proposed'")
         ).scalar()
         print(f"Proposed mappings awaiting review: {proposed_mappings}")
         

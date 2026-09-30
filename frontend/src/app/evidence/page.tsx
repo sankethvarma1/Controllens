@@ -50,7 +50,7 @@ export default function EvidencePage() {
           <p className="text-secondary-500 mt-1">Manage and verify control evidence</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-outline">Import Evidence</button>
+          <button className="btn-outline opacity-50 cursor-not-allowed" disabled title="Evidence import is not part of this demo">Import Evidence</button>
         </div>
       </div>
 
@@ -128,7 +128,6 @@ export default function EvidencePage() {
                   <th>Expiry</th>
                   <th>Source</th>
                   <th>Status</th>
-                  <th className="w-24">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -137,9 +136,9 @@ export default function EvidencePage() {
                   return (
                     <tr key={ev.id}>
                       <td>
-                        <Link href={`/evidence/${ev.id}`} className="font-medium text-secondary-900 hover:text-primary-600 max-w-xs truncate block">
+                        <span className="font-medium text-secondary-900 max-w-xs truncate block" title={ev.id}>
                           {ev.title}
-                        </Link>
+                        </span>
                         {ev.description && <p className="text-sm text-secondary-500 truncate max-w-xs">{ev.description}</p>}
                       </td>
                       <td className="capitalize">{ev.evidence_type}</td>
@@ -160,18 +159,6 @@ export default function EvidencePage() {
                         <span className={cn('badge', getStatusColor(ev.status))}>
                           {ev.status}
                         </span>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Link href={`/evidence/${ev.id}`} className="p-1.5 hover:bg-secondary-100 rounded" title="View">
-                            <ExternalLink className="w-4 h-4" />
-                          </Link>
-                          {ev.file_path && (
-                            <a href={ev.file_path} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-secondary-100 rounded" title="Download">
-                              <Download className="w-4 h-4" />
-                            </a>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   );

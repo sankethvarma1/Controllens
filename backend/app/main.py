@@ -133,7 +133,7 @@ async def create_regulation(regulation: RegulationCreate, db: Session = Depends(
 async def list_regulations(
     status: Optional[str] = None,
     jurisdiction: Optional[str] = None,
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -203,7 +203,7 @@ async def list_obligations(
     regulation_id: Optional[str] = None,
     category: Optional[str] = None,
     risk_level: Optional[str] = None,
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -261,7 +261,7 @@ async def list_policies(
     policy_type: Optional[str] = None,
     department: Optional[str] = None,
     status: Optional[str] = None,
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -305,7 +305,7 @@ async def create_process(process: ProcessCreate, db: Session = Depends(get_db)):
 async def list_processes(
     department: Optional[str] = None,
     status: Optional[str] = None,
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -349,7 +349,7 @@ async def list_controls(
     policy_id: Optional[str] = None,
     control_type: Optional[str] = None,
     status: Optional[str] = "active",
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -409,7 +409,7 @@ async def list_evidence(
     control_id: Optional[str] = None,
     evidence_type: Optional[str] = None,
     status: Optional[str] = "verified",
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -501,8 +501,8 @@ async def list_exceptions(
     obligation_id: Optional[str] = None,
     severity: Optional[str] = None,
     status: Optional[str] = None,
-    days: int = Query(90, le=365),
-    limit: int = Query(50, le=100),
+    days: int = Query(90, le=3650),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -568,7 +568,7 @@ async def create_risk_assessment(ra: RiskAssessmentCreate, db: Session = Depends
 async def list_risk_assessments(
     entity_type: Optional[str] = None,
     entity_id: Optional[str] = None,
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -604,7 +604,7 @@ async def list_mapping_reviews(
     target_type: Optional[str] = None,
     target_id: Optional[str] = None,
     status: Optional[str] = None,
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -686,7 +686,7 @@ async def get_audit_trail(
     from datetime import date, timedelta
     cutoff = date.today() - timedelta(days=days)
     
-    query = db.query(AuditEvent).filter(AuditEvent.timestamp >= cutoff)
+    query = db.query(AuditEvent).filter(AuditEvent.created_at >= cutoff)
     
     if entity_type:
         query = query.filter(AuditEvent.entity_type == entity_type)
@@ -695,7 +695,7 @@ async def get_audit_trail(
     if user_id:
         query = query.filter(AuditEvent.user_id == user_id)
     
-    return query.order_by(AuditEvent.timestamp.desc()).offset(offset).limit(limit).all()
+    return query.order_by(AuditEvent.created_at.desc()).offset(offset).limit(limit).all()
 
 
 # =====================================================
@@ -886,7 +886,7 @@ async def list_documents(
     document_type: Optional[str] = None,
     source: Optional[str] = None,
     status: Optional[str] = None,
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=500),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):

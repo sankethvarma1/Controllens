@@ -606,7 +606,7 @@ class AgentTools:
         """Get audit trail with filters."""
         cutoff = date.today() - timedelta(days=days)
         
-        q = self.db.query(AuditEvent).filter(AuditEvent.timestamp >= cutoff)
+        q = self.db.query(AuditEvent).filter(AuditEvent.created_at >= cutoff)
         
         if entity_type:
             q = q.filter(AuditEvent.entity_type == entity_type)
@@ -615,7 +615,7 @@ class AgentTools:
         if user_id:
             q = q.filter(AuditEvent.user_id == user_id)
         
-        results = q.order_by(AuditEvent.timestamp.desc()).limit(100).all()
+        results = q.order_by(AuditEvent.created_at.desc()).limit(100).all()
         
         return [
             {

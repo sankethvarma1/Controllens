@@ -141,11 +141,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             
             <div className="flex items-center gap-4">
-              <button className="relative p-2 rounded-lg hover:bg-secondary-100" aria-label="Notifications">
+              <button className="relative p-2 rounded-lg opacity-50 cursor-not-allowed" aria-label="Notifications" disabled title="Notifications are not part of this demo">
                 <Bell className="w-5 h-5 text-secondary-600" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-danger-500 rounded-full" />
               </button>
-              <button className="p-2 rounded-lg hover:bg-secondary-100" aria-label="Settings">
+              <button className="p-2 rounded-lg opacity-50 cursor-not-allowed" aria-label="Settings" disabled title="Settings are not part of this demo">
                 <Settings className="w-5 h-5 text-secondary-600" />
               </button>
             </div>

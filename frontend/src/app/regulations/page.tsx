@@ -47,9 +47,9 @@ export default function RegulationsPage() {
           <h1 className="text-2xl font-bold text-secondary-900">Regulations</h1>
           <p className="text-secondary-500 mt-1">Manage regulatory frameworks and their sections</p>
         </div>
-        <Link href="/regulations/new" className="btn-primary">
+        <button className="btn-primary opacity-50 cursor-not-allowed" disabled title="Regulation creation is not part of this demo">
           Add Regulation
-        </Link>
+        </button>
       </div>
 
       {/* Filters */}
@@ -105,16 +105,15 @@ export default function RegulationsPage() {
                   <th>Regulator</th>
                   <th>Effective Date</th>
                   <th>Status</th>
-                  <th className="w-24">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(reg => (
                   <tr key={reg.id}>
                     <td>
-                      <Link href={`/regulations/${reg.id}`} className="font-medium text-secondary-900 hover:text-primary-600">
+                      <span className="font-medium text-secondary-900" title={reg.id}>
                         {reg.title}
-                      </Link>
+                      </span>
                       {reg.short_name && <p className="text-sm text-secondary-500">{reg.short_name}</p>}
                     </td>
                     <td className="text-secondary-600">{reg.jurisdiction || '-'}</td>
@@ -125,16 +124,7 @@ export default function RegulationsPage() {
                         {reg.status}
                       </span>
                     </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/regulations/${reg.id}`} className="p-1.5 hover:bg-secondary-100 rounded" title="View">
-                          <ExternalLink className="w-4 h-4" />
-                        </Link>
-                        <Link href={`/regulations/${reg.id}/sections`} className="p-1.5 hover:bg-secondary-100 rounded" title="Sections">
-                          <FileText className="w-4 h-4" />
-                        </Link>
-                      </div>
-                    </td>
+
                   </tr>
                 ))}
               </tbody>

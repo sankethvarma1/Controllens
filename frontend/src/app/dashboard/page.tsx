@@ -54,7 +54,7 @@ const METRIC_CARDS = [
   },
   {
     key: 'open_exceptions',
-    label: 'Open Exceptions',
+    label: 'Open Exceptions (30d)',
     icon: AlertTriangle,
     color: 'bg-red-500',
     trend: 'down',

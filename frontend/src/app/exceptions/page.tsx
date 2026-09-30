@@ -13,7 +13,9 @@ export default function ExceptionsPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [daysFilter, setDaysFilter] = useState(90);
+  // Default to "All time" so seeded historical records are visible;
+  // narrower ranges can still be selected below.
+  const [daysFilter, setDaysFilter] = useState(3650);
   const [controls, setControls] = useState<Array<{id: string, name: string}>>([]);
   const [processes, setProcesses] = useState<Array<{id: string, name: string}>>([]);
 
@@ -61,7 +63,7 @@ export default function ExceptionsPage() {
           <p className="text-secondary-500 mt-1">Track and remediate control failures and policy violations</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/exceptions/new" className="btn-primary">Log Exception</Link>
+          <button className="btn-primary opacity-50 cursor-not-allowed" disabled title="Exception logging is not part of this demo">Log Exception</button>
         </div>
       </div>
 
@@ -97,7 +99,7 @@ export default function ExceptionsPage() {
         <div className="card p-4 border-l-4 border-primary-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-secondary-500">Total (90 days)</p>
+              <p className="text-sm text-secondary-500">Total ({daysFilter >= 3650 ? 'all time' : `${daysFilter} days`})</p>
               <p className="text-2xl font-bold text-secondary-900">{exceptions.length}</p>
             </div>
             <Clock className="w-8 h-8 text-primary-500" />
@@ -153,6 +155,7 @@ export default function ExceptionsPage() {
             <option value={90}>Last 90 days</option>
             <option value={180}>Last 180 days</option>
             <option value={365}>Last year</option>
+            <option value={3650}>All time</option>
           </select>
         </div>
       </div>
@@ -179,7 +182,6 @@ export default function ExceptionsPage() {
                   <th>Days Open</th>
                   <th>Assigned To</th>
                   <th>Status</th>
-                  <th className="w-32">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -188,9 +190,9 @@ export default function ExceptionsPage() {
                   return (
                     <tr key={exc.id}>
                       <td>
-                        <Link href={`/exceptions/${exc.id}`} className="font-medium text-secondary-900 hover:text-primary-600">
+                        <span className="font-medium text-secondary-900" title={exc.id}>
                           {exc.exception_number}
-                        </Link>
+                        </span>
                         <p className="text-sm text-secondary-500 max-w-xs truncate">{exc.title || 'No title'}</p>
                       </td>
                       <td className="text-secondary-600 capitalize">{exc.exception_type.replace(/_/g, ' ')}</td>
@@ -215,16 +217,7 @@ export default function ExceptionsPage() {
                           {exc.status.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Link href={`/exceptions/${exc.id}`} className="p-1.5 hover:bg-secondary-100 rounded" title="View">
-                            <ExternalLink className="w-4 h-4" />
-                          </Link>
-                          <button className="p-1.5 hover:bg-secondary-100 rounded" title="More">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
+
                     </tr>
                   );
                 })}
